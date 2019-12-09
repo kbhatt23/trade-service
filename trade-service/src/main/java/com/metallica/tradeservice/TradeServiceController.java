@@ -17,7 +17,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.metallica.tradeservice.bean.Trade;
 import com.metallica.tradeservice.bean.TradeFunctions;
 import com.metallica.tradeservice.bean.dao.TradeEntity;
-import com.metallica.tradeservice.service.TradePublisherService;
+import com.metallica.tradeservice.publisher.RabbitMQMessagePublisher;
 import com.metallica.tradeservice.service.TradeService;
 import com.metallica.tradeservice.service.feign.CommodityPriceServiceProxy;
 
@@ -28,8 +28,12 @@ public class TradeServiceController {
 	@Autowired
 	private TradeService tradeService;
 	
+	/*
+	 * @Autowired private TradePublisherService tradePublisherService;
+	 */
+	
 	@Autowired
-	private TradePublisherService tradePublisherService;
+	private RabbitMQMessagePublisher rabbitMQMessagePublisher;
 	
 	@Autowired
 	private CommodityPriceServiceProxy commodityPriceServiceProxy;
@@ -46,7 +50,10 @@ public class TradeServiceController {
 		logger.debug("createTrade: unit price fetched "+unitPrice);
 		TradeFunctions.manipulateTradeEntity.apply(trade, unitPrice);
 		//not publishing DB entry as it can have sensitive data
-		tradePublisherService.publishTrade(trade);
+		//tradePublisherService.publishTrade(trade);
+		rabbitMQMessagePublisher.publish(trade);
+		
+		
 		TradeEntity tradeEntity = tradeService.createTrade(trade);
 		
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{tradeId}")
